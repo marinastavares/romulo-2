@@ -84,18 +84,17 @@ void recebe_pedido() {
 			
 		} else if(strcmp(substring, "novo") == 0)
 		{
-            printf("teclou novo");
 			strncpy(substring, comando+4, BUF_SIZE);
-			float novoTref = atof(substring);
 			pthread_mutex_lock(&contador);
                 cont_pizza++;
                 pthread_cond_signal(&novo_pedido);
             pthread_mutex_unlock(&contador);
-            printf("\n entrou mutex e o valor do cont eh %d",cont_pizza);
+            printf("\nPedido computado");
+            printf("%s", comando);
 		}
 		
+        pos=0;
 		comando[0] = '\0';
-		
 		
 		pthread_mutex_unlock(&comando_mutex);
 	}
@@ -108,9 +107,7 @@ void prepara_massa() {
     while(cont_pizza < 1) {
         pthread_cond_wait(&novo_pedido,&contador);
     }
-    printf("\n entrou reparando massa");
     pthread_mutex_lock(&preparacao);
-        printf("\nPreparando massa");
         preparando = 1;
         sleep(1);
         pthread_cond_signal(&massa_pronta);
@@ -121,14 +118,11 @@ void montagem_pizza() {
     while(preparando < 1) {
         pthread_cond_wait(&massa_pronta,&preparacao);
     }
-    printf("\n entrou montagem massa");
 
     pthread_mutex_lock(&montagem_mutex);
-        printf("\nMontando pizza");
         montando_pizza = 1;
         pthread_cond_signal(&montagem_pronta);
     pthread_mutex_unlock(&montagem_mutex);
-        printf("\n sai montando massa");
 
 }
 
@@ -136,15 +130,11 @@ void coloca_forno() {
      while(montando_pizza < 1) {
         pthread_cond_wait(&montagem_pronta,&montagem_mutex);
     }
-    printf("\n entrou forno");
 
     pthread_mutex_lock(&forno_mutex);
-        printf("\n Forno");
         pizza_pronta = 1;
         pthread_cond_signal(&forno_pronto);
-        printf("\n sinalzin");
     pthread_mutex_unlock(&forno_mutex);
-        printf("\n sai forno");
 
 }
 
@@ -152,20 +142,15 @@ void empacotando() {
     while(pizza_pronta < 1) {
         pthread_cond_wait(&forno_pronto,&forno_mutex);
     }
-    printf("\n empacotando");
-
-    pthread_mutex_lock(&contador);
-        printf("\n protegi");
-    cont_pizza--;
-    cont_prontas++;
-    pthread_mutex_unlock(&contador);
 
     pthread_mutex_lock(&empacota_mutex);
-        printf("\n Empacota");
+        cont_pizza= cont_pizza-1;
+        cont_prontas= cont_prontas+1;
         pizza_pronta = 0;
+        preparando = 0;
+        pacotes = pacotes -1;
         pthread_cond_signal(&pedido_pronto);
     pthread_mutex_unlock(&empacota_mutex);
-        printf("\n sai empacota");
 }
 
 void mostra_tela () {
@@ -174,13 +159,13 @@ void mostra_tela () {
         system("clear");
 	    printf("*-*-*-*-  Pizzaria da Ana e da Marina    *-*-*-*-\n\n");
         if (preparando > 0) {
-            pthread_mutex_lock(&preparacao);
-            printf("A pizza esta sendo preparada");
-            pthread_mutex_unlock(&preparacao);
+            printf("\nA pizza esta sendo preparada\n");
+        } else {
+            printf("\nSem pizzas no processo\n");
         }
         printf("No momento temos %d pedidos \n",cont_pizza);
-        printf("Ja preparamos %d pedidos \n",cont_pizza);
-        printf("Ja temos %d pacotes \n",pacotes);
+        printf("Ja preparamos %d pedidos \n",cont_prontas);
+        printf("Ainda temos %d pacotes \n",pacotes);
         pthread_mutex_unlock(&tela);
         printf("Para preparar uma pizza, digite 'novo': \n");
         sleep(5);
